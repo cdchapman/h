@@ -5,8 +5,13 @@ if (window.annotator) {
 
 var Annotator = require('annotator');
 
-// Monkeypatch annotator!
-require('./annotator/monkey');
+// Scroll plugin for jQuery
+// TODO: replace me
+require('jquery-scrollintoview')
+
+// Polyfills
+var g = Annotator.Util.getGlobal();
+if (g.wgxpath) g.wgxpath.install();
 
 // Applications
 Annotator.Guest = require('./annotator/guest')
@@ -21,36 +26,14 @@ Annotator.Plugin.CrossFrame.Discovery = require('./discovery')
 // Document plugin
 require('./vendor/annotator.document');
 
+// Text selection plugin
+require('./annotator/plugin/textselection');
+
 // Bucket bar
 require('./annotator/plugin/bucket-bar');
 
 // Toolbar
 require('./annotator/plugin/toolbar');
-
-// Drawing highlights
-require('./annotator/plugin/texthighlights');
-
-// Creating selections
-require('./annotator/plugin/textselection');
-
-// URL fragments
-require('./annotator/plugin/fragmentselector');
-
-// Anchoring dependencies
-require('diff-match-patch')
-require('dom-text-mapper')
-require('dom-text-matcher')
-require('page-text-mapper-core')
-require('text-match-engines')
-
-// Anchoring plugins
-require('./annotator/plugin/enhancedanchoring');
-require('./annotator/plugin/domtextmapper');
-require('./annotator/plugin/fuzzytextanchors');
-require('./annotator/plugin/pdf');
-require('./annotator/plugin/textquote');
-require('./annotator/plugin/textposition');
-require('./annotator/plugin/textrange');
 
 var Klass = Annotator.Host;
 var docs = 'https://github.com/hypothesis/h/blob/master/README.rst#customized-embedding';

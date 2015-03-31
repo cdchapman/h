@@ -36,7 +36,7 @@ module.exports = class Host extends Guest
     .addClass('annotator-frame annotator-outer annotator-collapsed')
     .appendTo(element)
 
-    super element, options, dontScan: true
+    super
     this._addCrossFrameListeners()
 
     app.appendTo(@frame)
@@ -46,8 +46,6 @@ module.exports = class Host extends Guest
 
     # Host frame dictates the toolbar options.
     this.on 'panelReady', =>
-      this.anchoring._scan() # Scan the document
-
       # Guest is designed to respond to events rather than direct method
       # calls. If we call set directly the other plugins will never recieve
       # these events and the UI will be out of sync.
