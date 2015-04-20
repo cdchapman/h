@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 from annotator import annotation, document
 from pyramid.i18n import TranslationStringFactory
 from pyramid.security import Allow, Authenticated, Everyone, ALL_PERMISSIONS
@@ -46,23 +47,31 @@ class Annotation(annotation.Annotation):
         'deleted': {'type': 'boolean'},
         'uri': {
             'type': 'string',
-            'index_analyzer': 'uri_index',
-            'search_analyzer': 'uri_search'
+            'index_analyzer': 'uri',
+            'search_analyzer': 'uri',
+            'copy_to': 'site',
+            'fields': {
+                'parts': {
+                    'type': 'string',
+                    'index_analyzer': 'uri_parts',
+                    'search_analyzer': 'uri_parts',
+                },
+            },
+        },
+        'site': {
+            'type': 'string',
+            'index_analyzer': 'uri_site',
+            'search_analyzer': 'uri_site',
         },
         'user': {'type': 'string', 'index': 'analyzed', 'analyzer': 'user'},
         'consumer': {'type': 'string'},
         'target': {
             'properties': {
                 'source': {
-                    'path': 'just_name',
                     'type': 'string',
-                    'fields': {
-                        'uri': {
-                            'type': 'string',
-                            'index_analyzer': 'uri_index',
-                            'search_analyzer': 'uri_search',
-                        },
-                    },
+                    'index_analyzer': 'uri',
+                    'search_analyzer': 'uri',
+                    'copy_to': ['uri', 'site'],
                 },
                 'selector': {
                     'properties': {
@@ -114,48 +123,60 @@ class Annotation(annotation.Annotation):
         }
     }
     __analysis__ = {
-        'filter': {
-            'uri_index': {
-                'type': 'pattern_capture',
-                'preserve_original': '1',
-                'patterns': [
-                    '([^\\/\\?\\#\\.]+)',
-                    '([a-zA-Z0-9]+)(?:\\.([a-zA-Z0-9]+))*',
-                    '([a-zA-Z0-9-]+)(?:\\.([a-zA-Z0-9-]+))*',
-                    '://(.+)',
-                    '://(.+)\\#',
-                ]
+        'char_filter': {
+            'strip_scheme': {
+                'type': 'pattern_replace',
+                'pattern': r'^(?:[A-Za-z]+:)?/{0,3}',
+                'replacement': '',
             },
-            'uri_search': {
+            'strip_www': {
+                'type': 'pattern_replace',
+                'pattern': '^www\.',
+                'replacement': '',
+            },
+        },
+        'filter': {
+            'path_url': {
                 'type': 'pattern_capture',
-                'preserve_original': '1',
+                'preserve_original': 'false',
                 'patterns': [
-                    '://(.+)',
-                    '://(.+)\\#',
-                ]
+                    r'([0-9.\-A-Za-z]+(?::\d+)?(?:/[^?#]*))?',
+                ],
+            },
+            'rstrip_slash': {
+                'type': 'pattern_replace',
+                'pattern': '/$',
+                'replacement': '',
             },
             'user': {
                 'type': 'pattern_capture',
-                'preserve_original': '1',
+                'preserve_original': 'true',
                 'patterns': ['^acct:((.+)@.*)$']
+            }
+        },
+        'tokenizer': {
+            'uri_part': {
+                'type': 'pattern',
+                'pattern': r'[#+/:?.-]|(%23)|(%2B)|(%2F)|(%3A)|(%3F)',
             }
         },
         'analyzer': {
             'thread': {
                 'tokenizer': 'path_hierarchy'
             },
-            'lower_keyword': {
-                'type': 'custom',
+            'uri': {
                 'tokenizer': 'keyword',
-                'filter': 'lowercase'
+                'char_filter': ['strip_scheme'],
+                'filter': ['path_url', 'rstrip_slash', 'lowercase'],
             },
-            'uri_index': {
-                'tokenizer': 'keyword',
-                'filter': ['uri_index', 'unique', 'lowercase']
+            'uri_parts': {
+                'tokenizer': 'uri_part',
+                'filter': ['unique'],
             },
-            'uri_search': {
-                'tokenizer': 'keyword',
-                'filter': ['uri_search', 'unique', 'lowercase']
+            'uri_site': {
+                'tokenizer': 'path_hierarchy',
+                'char_filter': ['strip_scheme', 'strip_www'],
+                'filter': ['lowercase'],
             },
             'user': {
                 'tokenizer': 'keyword',
